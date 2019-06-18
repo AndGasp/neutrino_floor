@@ -4,7 +4,7 @@ Andrea Gaspert 06/2019
 
 ###How to compute neutrino floor###
 
-Simply need to modify and run go_ak_multi.py
+Simply need to modify and run go_oak_multi.py
 
 Minimally, the detector material ('Ar' or 'Xe'), the mode ('cs' or 'exp') and the DM masses at which to compute the floor (list of floats) need to be defined in this file (see the go_oak_multi.py section for details and other parameters)
 
