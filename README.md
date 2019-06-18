@@ -85,7 +85,7 @@ Number of energy bins considered. Energy bins are logarithmically-spaced between
 - n_mc : int 
 Number of pseudo-experiments to run to estimate the significance of discovery for every mass/cross-section pair. Default is 100 if not defined.
 - n_dicho : int 
-number of iteration before the dichotomic search for the cross-section / exposure a the floor stops. Default is 10 if not defined. This allows a precision of 
+number of iteration before the dichotomic search for the cross-section / exposure a the floor stops. Default is 10 if not defined. This allows a precision of 2%.
 - speed_dist: 'reg' or 'pp' or 'other' 
 The DM speed distribution to use. If 'reg', regular SHM is used. If 'pp', SHM++ is used and algorithm also profiles over values of the sausage fraction and anisotropy. If 'other' is used, a function defining another DM speed distribution IN THE LAB FRAME is used.
 - dist: function_name 
