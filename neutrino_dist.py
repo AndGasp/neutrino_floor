@@ -1,6 +1,6 @@
 # coding=utf-8
 # Code to produce "normalized" recoil energy distributions for different neutrino sources in different detector materials
-# Only need to run once
+# ONLY NEED TO RUN ONCE TO PRODUCE THE FILES CONTAINING DISTRIBUTIONS
 import sys,os
 import numpy as np
 import matplotlib.pyplot as plt
@@ -184,6 +184,8 @@ dist_f_hep = flux_hep(e_neutrino)*hep_flux
 dist_f_o15 = flux_ns_o15(e_neutrino)*o15_flux
 dist_f_n13 = flux_ns_n13(e_neutrino)*n13_flux
 dist_f_f17 = flux_ns_f17(e_neutrino)*f17_flux
+
+
 #positions for uncertainty labels on plot
 def pos(dist,extra=0):
 	ind = np.argmax(dist)
@@ -235,39 +237,38 @@ plt.show()
 
 #PRODUCE A NUMPY ARRAY WITH "NORMALIZED" RECOIL DISTRIBUTIONS FOR ALL 10 SOURCES OF NEUTRINO, FOR NR AND ER
 
-def numpy_energy(emax,num,AA,iso,ZZ,name):
+def numpy_energy(emax,num,AA,iso,ZZ,name,approx):
 	#creates a .npy file  with differential recoil dist from 0 to emax with num points for element of mass number AA
 	#No detector properties included here (acceptance, ER rejection, size, etc...)
-	e_tab = np.logspace(-4,2,1000)
-	dist = np.zeros([21,1000])
+	e_tab = np.logspace(0.69,2.4,1000)
+	dist = np.zeros([7,1000])
 	dist[0,:] = e_tab
-
 
 
 	for j,e in enumerate(e_tab):
 		#NR
-		dist[1,j] = eval_neu(e,AA,iso,ZZ,flux_pp,emax=1e3)
-		dist[2,j] = eval_neu(e,AA,iso,ZZ,flux_hep,emax=1e5)
-		dist[3,j] = eval_neu(e,AA,iso,ZZ,flux_8b,emax=1e5)
-		dist[4,j] = eval_neu(e,AA,iso,ZZ,flux_ns_o15,emax=1e4)
-		dist[5,j] = eval_neu(e,AA,iso,ZZ,flux_ns_n13,emax=1e4)
-		dist[6,j] = eval_neu(e,AA,iso,ZZ,flux_ns_f17,emax=1e4)
-		dist[7,j] = eval_neu(e,AA,iso,ZZ,flux_pp,spectral_line='pep')
-		dist[8,j] = eval_neu(e,AA,iso,ZZ,flux_pp,spectral_line='7be')
-		dist[9,j] = eval_neu(e,AA,iso,ZZ,flux_atm_e) + eval_neu(e,AA,iso,ZZ,flux_atm_mu)
-		dist[10,j] = eval_neu(e,AA,iso,ZZ,flux_dsnb_e) + eval_neu(e,AA,iso,ZZ,flux_dsnb_other)
+		#dist[1,j] = eval_neu(e,AA,iso,ZZ,flux_pp,emax=1e3)
+		dist[1,j] = eval_neu(e,AA,iso,ZZ,flux_hep,emax=1e5) #1
+		dist[2,j] = eval_neu(e,AA,iso,ZZ,flux_8b,emax=1e5) #2
+		#dist[4,j] = eval_neu(e,AA,iso,ZZ,flux_ns_o15,emax=1e4)
+		#dist[5,j] = eval_neu(e,AA,iso,ZZ,flux_ns_n13,emax=1e4)
+		#dist[6,j] = eval_neu(e,AA,iso,ZZ,flux_ns_f17,emax=1e4)
+		#dist[7,j] = eval_neu(e,AA,iso,ZZ,flux_pp,spectral_line='pep')
+		#dist[8,j] = eval_neu(e,AA,iso,ZZ,flux_pp,spectral_line='7be')
+		dist[3,j] = eval_neu(e,AA,iso,ZZ,flux_atm_e) + eval_neu(e,AA,iso,ZZ,flux_atm_mu) #9
+		dist[4,j] = eval_neu(e,AA,iso,ZZ,flux_dsnb_e) + eval_neu(e,AA,iso,ZZ,flux_dsnb_other)#10
 
 		#ER
-		dist[11,j] = eval_e(e,AA,iso,ZZ,flux_pp,flux_pp,solar=True,emax=1e3)
-		dist[12,j] = eval_e(e,AA,iso,ZZ,flux_hep,flux_hep,solar=True,emax=1e5)
-		dist[13,j] = eval_e(e,AA,iso,ZZ,flux_8b,flux_8b,solar=True,emax=1e5)
-		dist[14,j] = eval_e(e,AA,iso,ZZ,flux_ns_o15,flux_ns_o15,solar=True,emax=1e4)
-		dist[15,j] = eval_e(e,AA,iso,ZZ,flux_ns_n13,flux_ns_n13,solar=True,emax=1e4)
-		dist[16,j] = eval_e(e,AA,iso,ZZ,flux_ns_f17,flux_ns_f17,solar=True,emax=1e4)
-		dist[17,j] = eval_e(e,AA,iso,ZZ,flux_pp,flux_pp,solar=True, spectral_line='pep')
-		dist[18,j] = eval_e(e,AA,iso,ZZ,flux_pp,flux_pp,solar=True,spectral_line='7be')
-		dist[19,j] = eval_e(e,AA,iso,ZZ,flux_atm_e,flux_atm_mu)
-		dist[20,j] = eval_e(e,AA,iso,ZZ,flux_dsnb_e,flux_dsnb_other)
+		dist[5,j] = eval_e(e,AA,iso,ZZ,flux_pp,flux_pp,approx,solar=True,emax=1e3)
+		#dist[12,j] = eval_e(e,AA,iso,ZZ,flux_hep,flux_hep,solar=True,emax=1e5)
+		#dist[13,j] = eval_e(e,AA,iso,ZZ,flux_8b,flux_8b,solar=True,emax=1e5)
+		#dist[14,j] = eval_e(e,AA,iso,ZZ,flux_ns_o15,flux_ns_o15,solar=True,emax=1e4)
+		#dist[15,j] = eval_e(e,AA,iso,ZZ,flux_ns_n13,flux_ns_n13,solar=True,emax=1e4)
+		#dist[16,j] = eval_e(e,AA,iso,ZZ,flux_ns_f17,flux_ns_f17,solar=True,emax=1e4)
+		#dist[17,j] = eval_e(e,AA,iso,ZZ,flux_pp,flux_pp,solar=True, spectral_line='pep')
+		dist[6,j] = eval_e(e,AA,iso,ZZ,flux_pp,flux_pp,approx,solar=True,spectral_line='7be')
+		#dist[19,j] = eval_e(e,AA,iso,ZZ,flux_atm_e,flux_atm_mu)
+		#dist[20,j] = eval_e(e,AA,iso,ZZ,flux_dsnb_e,flux_dsnb_other)
 
 		print(j)
 		#check recoil spectrum
@@ -275,16 +276,16 @@ def numpy_energy(emax,num,AA,iso,ZZ,name):
 	dist[1:,:] = np.ma.masked_where(dist[1:,:]<1e-17,dist[1:,:])
 
 	# NR distribution
-	plt.plot(dist[0,:],dist[1,:]*pp_flux,label='pp')
-	plt.plot(dist[0,:],dist[2,:]*hep_flux,label='hep')
-	plt.plot(dist[0,:],dist[3,:]*b8_flux,label='8b')
-	plt.plot(dist[0,:],dist[4,:]*o15_flux,label='15O')
-	plt.plot(dist[0,:],dist[5,:]*n13_flux,label='13N')
-	plt.plot(dist[0,:],dist[6,:]*f17_flux,label='17F')
-	plt.plot(dist[0,:],dist[7,:]*pep_flux,label='pep')
-	plt.plot(dist[0,:],dist[8,:]*be7_flux,label='be7')
-	plt.plot(dist[0,:],dist[9,:]*atm_flux,label='atm')
-	plt.plot(dist[0,:],dist[10,:]*dsnb_flux,label='DSNB')
+	#plt.plot(dist[0,:],dist[1,:]*pp_flux,label='pp')
+	plt.plot(dist[0,:],dist[1,:]*hep_flux,label='hep')
+	plt.plot(dist[0,:],dist[2,:]*b8_flux,label='8b')
+	#plt.plot(dist[0,:],dist[4,:]*o15_flux,label='15O')
+	#plt.plot(dist[0,:],dist[5,:]*n13_flux,label='13N')
+	#plt.plot(dist[0,:],dist[6,:]*f17_flux,label='17F')
+	#plt.plot(dist[0,:],dist[7,:]*pep_flux,label='pep')
+	#plt.plot(dist[0,:],dist[8,:]*be7_flux,label='be7')
+	plt.plot(dist[0,:],dist[3,:]*atm_flux,label='atm')
+	plt.plot(dist[0,:],dist[4,:]*dsnb_flux,label='DSNB')
 	plt.xlabel('recoil energy (keV)')
 	plt.ylabel(r'flux ($s^{-1} m^{-2} keV^{-1}$)')
 	plt.xscale('log')
@@ -294,16 +295,16 @@ def numpy_energy(emax,num,AA,iso,ZZ,name):
 
 
 	#ER distribuition
-	plt.plot(dist[0,:],dist[11,:]*pp_flux,label='pp')
-	plt.plot(dist[0,:],dist[12,:]*hep_flux,label='hep')
-	plt.plot(dist[0,:],dist[13,:]*b8_flux,label='8b')
-	plt.plot(dist[0,:],dist[14,:]*o15_flux,label='15O')
-	plt.plot(dist[0,:],dist[15,:]*n13_flux,label='13N')
-	plt.plot(dist[0,:],dist[16,:]*f17_flux,label='17F')
-	plt.plot(dist[0,:],dist[17,:]*pep_flux,label='pep')
-	plt.plot(dist[0,:],dist[18,:]*be7_flux,label='be7')
-	plt.plot(dist[0,:],dist[19,:]*atm_flux,label='atm')
-	plt.plot(dist[0,:],dist[20,:]*dsnb_flux,label='DSNB')
+	plt.plot(dist[0,:],dist[5,:]*pp_flux,label='pp')
+	#plt.plot(dist[0,:],dist[12,:]*hep_flux,label='hep')
+	#plt.plot(dist[0,:],dist[13,:]*b8_flux,label='8b')
+	#plt.plot(dist[0,:],dist[14,:]*o15_flux,label='15O')
+	#plt.plot(dist[0,:],dist[15,:]*n13_flux,label='13N')
+	#plt.plot(dist[0,:],dist[16,:]*f17_flux,label='17F')
+	#plt.plot(dist[0,:],dist[17,:]*pep_flux,label='pep')
+	plt.plot(dist[0,:],dist[6,:]*be7_flux,label='be7')
+	#plt.plot(dist[0,:],dist[19,:]*atm_flux,label='atm')
+	#plt.plot(dist[0,:],dist[20,:]*dsnb_flux,label='DSNB')
 	plt.xlabel('recoil energy (keV)')
 	plt.ylabel(r'flux ($s^{-1} m^{-2} keV^{-1}$)')
 	plt.xscale('log')
@@ -311,10 +312,12 @@ def numpy_energy(emax,num,AA,iso,ZZ,name):
 	plt.legend(loc='best')
 	plt.show()
 
-	#np.save(name, dist)
+	np.save(name, dist)
 
 	return dist
 
-
-dist_argon = numpy_energy(200,1000,A_argon_s,iso_1,Z_argon,'dist_neutrino_argon_long.npy')
-dist_xenon = numpy_energy(100,1000,A_xenon_s,iso_1,Z_xenon,'dist_neutrino_xenon_long.npy')
+#Array containing only neutrino NR for hep,8B, atm and DSNB neutrinos and ER for pp and be7 neutrinos
+"""
+dist_argon = numpy_energy(200,1000,A_argon_s,iso_1,Z_argon,'dist_neutrino_argon_new.npy','SA')
+dist_xenon = numpy_energy(100,1000,A_xenon_s,iso_1,Z_xenon,'dist_neutrino_xenon_new.npy','data')
+"""

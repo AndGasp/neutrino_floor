@@ -77,42 +77,53 @@ ARGS['mod'] = 'cs'
 ARGS['ER'] = True #True if considering ER
 
 #uncomment for quick test
-ARGS['n_mc'] = 4 #number of monte carlo points
-ARGS['n_dicho'] = 4 #number of iteration in dichothomic search
+#ARGS['n_mc'] = 10 #number of monte carlo points
+ARGS['n_dicho'] = 1 #number of iteration in dichothomic search
 
+ARGS['n_mc'] = 1
 
-m_tab = np.logspace(-1,4,5)*100 #values of DM masses 
+#m_tab = np.logspace(-1,4,5)*100 #values of DM masses 
+m_tab = np.logspace(-1,4,2)
 #exp_tab = np.logspace(-2,7,30)
 
 ARGS['speed_dist'] = 'reg' #speed distribution to use, "reg" for SHM
 
 m_values = m_tab.tolist()
 #exp_values = exp_tab.tolist()
+exp_values = [1e4]
+
+ARGS['ER'] = 100 #ER rejection level
 
 ARGS['m'] = m_values
 #ARGS['exp'] = exp_values
 
 
-jobname = 'floor_{}_test_exposures_withER'.format(ARGS['typ']) #change here for a more informative title if needed!
 
-ARGS['save'] = jobname #name of file to save results (log, numpy array with floor value, plot of floor)
+for i in range(len(exp_values)):
+	ARGS['exp'] = exp_values[i]
+	print(ARGS['exp'],ARGS['m'])
+	jobname = 'floor_{}_withER_basic_{}'.format(ARGS['typ'],int(ARGS['exp'])) #change here for a more informative title if needed!
 
-logname = jobname +"{:.3}".format(13*random.random()+random.random()) + datetime.fromtimestamp(time()).strftime('_%y%m%d%H%M.log')
-cmd = ' '.join([exe] + ['%s=%s'%(x,ARGS[x]) for x in ARGS])
+	ARGS['save'] = jobname #name of file to save results (log, numpy array with floor value, plot of floor)
 
-#print(cmd)
+	logname = jobname +"{:.3}".format(13*random.random()+random.random()) + datetime.fromtimestamp(time()).strftime('_%y%m%d%H%M.log')
+	cmd = ' '.join([exe] + ['%s=%s'%(x,ARGS[x]) for x in ARGS])
 
+	print(cmd)
 
-if batch_mode==True:
-
-	print("Submitting to cluster...")
-	sfile = open(jobname+'.batch','w')
-	sfile.write(FILECONTENT%(jobname,environ['PWD'],NTHREADS,mail_address,logname,logname,NTHREADS,cmd))
-	sfile.close()
-	call(['qsub', jobname+'.batch'])
-
-else:
 	call(cmd.split())
+
+	print('woot')
+
+
+	if batch_mode==True:
+
+		print("Submitting to cluster...")
+		sfile = open(jobname+'.batch','w')
+		sfile.write(FILECONTENT%(jobname,environ['PWD'],NTHREADS,mail_address,logname,logname,NTHREADS,cmd))
+		sfile.close()
+		call(['qsub', jobname+'.batch'])
+
 
 """
 ARGS['ER'] = True

@@ -20,7 +20,7 @@ def extract_num(s):
 	while True:
 		try:
 			val = int(s3[i])
-			print(val)
+			#print(val)
 			ind = i
 			break
 		except ValueError:
@@ -56,6 +56,7 @@ def text_to_numpy(file_name):
 
 	name = file_name[:-4]+'.npy'
 	np.save(name, d_ord) #save numpy array
+
 
 	return d_ord
 

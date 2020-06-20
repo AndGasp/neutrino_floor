@@ -86,7 +86,7 @@ while i<(len(argumentList)-1):
 	if 'exp=[' in argumentList[i]:
 		exp_start = i
 		arg_last = ' '
-
+		i+=1
 		while ']' not in arg_last:
 			i+=1
 			arg_last = argumentList[i]
@@ -184,7 +184,7 @@ if det == "Ar":
 	AA = A_argon_s
 	ZZ = Z_argon
 
-	neu_arr = np.load('dist_neutrino_argon_long.npy')
+	neu_arr = np.load('dist_neutrino_argon_new.npy')
 
 
 	try: 
@@ -224,7 +224,7 @@ if det == "Xe":
 	AA = A_xenon_s
 	ZZ = Z_xenon
 
-	neu_arr = np.load('dist_neutrino_xenon_long.npy')
+	neu_arr = np.load('dist_neutrino_xenon_new.npy')
 
 
 	try: 
@@ -262,13 +262,13 @@ if det == "Xe":
 try:
 	print('n_mc = {}'.format(n_mc))
 except NameError:
-	n_mc = 50
+	n_mc = 1000
 	print('n_mc = {}'.format(n_mc))
 
 try:
 	print('n_dicho = {}'.format(n_dicho))
 except NameError:
-	n_dicho = 8
+	n_dicho = 12
 	print('n_dicho = {}'.format(n_dicho))
 
 try:
@@ -330,8 +330,7 @@ if mod == "cs":
 
 		print(info_line)
 
-		#CHANGE TO CRASH EXISTING FILE IF ALREADY EXISTS
-
+		#CHANGE TO CRASH EXISTING FILE IF ALREADY EXISTS!!!
 		file1 = open(save_name+".txt","a+") 
 		file1.write(info_line)
 		file1.close()
@@ -426,12 +425,14 @@ if mod == 'exp':
 
 if __name__ == '__main__':
 
+	print('wooot')
+
 	#mark the start time
 	total_tasks = len(m_tab) #number of mass points wanted
 	startTime = time.time()
 	#count number of cores available on the computer
 	n_cpu = os.cpu_count()
-	print('number of cpu used:{}'.format(n_cpu))
+	print('number of cpu used:{}'.format(n_cpu-2))
 
 	#create pool with number of processes equal to the number of available cpu cores
 	max_number_processes = n_cpu
@@ -451,7 +452,6 @@ if __name__ == '__main__':
 	print("The job took " + str(workTime) + " seconds to complete")
 
 	#read txt file created and put information in numpy array
-	
 	results = text_to_numpy(save_name+".txt")
 
 	#plot neutrino floor
