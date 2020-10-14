@@ -160,12 +160,14 @@ e_pep=1.44*1e3
 
 
 err_nu=np.array([16,16,1,5,5,5,20,20,50,50])/100 #array with all errors on neutrino flux values
-
+err_nu_new = np.array([16,16,20,50,1,10.5])
 
 av_values = np.array([v_esc,v_0,dens_dm,pp_flux,hep_flux,b8_flux,o15_flux,n13_flux,f17_flux,pep_flux,be7_flux,atm_flux,dsnb_flux])
 sig_values = np.array([err_vesc,err_v0,err_dens,0.01*pp_flux,0.16*hep_flux,0.18*b8_flux,0.05*o15_flux,0.05*n13_flux,0.05*f17_flux,0.02*pep_flux,0.105*be7_flux,0.2*atm_flux,0.5*dsnb_flux])
 
+av_values_new = np.array([hep_flux,b8_flux,atm_flux,dsnb_flux,pp_flux,be7_flux])
+sig_values_new = np.array([hep_flux*0.16,b8_flux*0.18,atm_flux*0.2,dsnb_flux*0.5,pp_flux*0.01,be7_flux*0.105])
 
 #electron neutrino survival rate
-surv=0.57
-err_surv=0.03
+surv=0.55 #2020 PDG
+err_surv=0.03 #if consider

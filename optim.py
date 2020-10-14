@@ -6,8 +6,10 @@ import sys,os
 import numpy as np
 import matplotlib.pyplot as plt
 import random
+import math
 import scipy.interpolate
 import scipy.integrate as scint
+from scipy.stats import norm 
 from neutrino_events import *
 from constants import *
 from acceptance import acc_100
@@ -35,7 +37,7 @@ def empty(v):
 
 def int_simpson(e,dist):
 	#takes in array with speeds and array with distribution to integrate and returns value of integral using simpson method
-	#v need to be equally spaced and ordered!
+	#need to be equally spaced and ordered!
 	if len(e)/2 == len(e)//2: #simpson method requires even number of subdivisions
 		e = e[:-1]
 		dist = dist[:-1]
@@ -72,7 +74,7 @@ def dm_bins(emin,emax,nbin,m,acc,AA,ZZ,dm_params,speed_dist,dist):
 		ee = np.linspace(emin,emax,50000)
 
 		RR = int_new(ee,m,AA,ZZ,acc,iso_1,vesc,v0,1,1,'none',0,0)
-
+ 
 
 		for i in range(nbin-1):
 			"""
@@ -142,7 +144,7 @@ def dm_bins(emin,emax,nbin,m,acc,AA,ZZ,dm_params,speed_dist,dist):
 	return dm_events_new
 
 
-def neutrino_bin(emin,emax,nbin,neu_array):
+def neutrino_bin(emin,emax,nbin,neu_array,Quench_true):
 	#Compute number of neutrino events in each bin per kg per second for given detector properties (NR and ER)
 	#emin and emax ROI limits, nbin number of energy bins
 	#neu_array 6xn array containing normalized distribution of neutrino events as a function of energy for all solar, atm and DSNB neutrinos, NR and ER
@@ -156,8 +158,17 @@ def neutrino_bin(emin,emax,nbin,neu_array):
 	fit_b8=scipy.interpolate.interp1d(e_neu,neu_array[2,:],kind='linear',bounds_error = False, fill_value = 0)
 	fit_atm=scipy.interpolate.interp1d(e_neu,neu_array[3,:],kind='linear',bounds_error = False, fill_value = 0)
 	fit_dsnb=scipy.interpolate.interp1d(e_neu,neu_array[4,:],kind='linear',bounds_error = False, fill_value = 0)
-	fit_pp=scipy.interpolate.interp1d(e_neu,neu_array[5,:],kind='linear',bounds_error = False, fill_value = 0)
-	fit_be7=scipy.interpolate.interp1d(e_neu,neu_array[6,:],kind='linear',bounds_error = False, fill_value = 0)
+
+
+	#ER
+	if Quench_true:
+		e_neu_er = e_neu/Lindhart(e_neu)
+
+	else:
+		e_neu_er = e_neu
+
+	fit_pp=scipy.interpolate.interp1d(e_neu_er,neu_array[5,:],kind='linear',bounds_error = False, fill_value = 0)
+	fit_be7=scipy.interpolate.interp1d(e_neu_er,neu_array[6,:],kind='linear',bounds_error = False, fill_value = 0)
 
 	ee = np.linspace(emin,emax,50000)
 	
@@ -229,12 +240,13 @@ def likelihood(tab_dm,tab_neu_0,tab_neu_mc,exp,params_0,neu_fluxes_mc,details=0)
 	gauss_0_log = np.log(np.sqrt(2*np.pi*sig_values_new**2))-((neu_fluxes_mc-av_values_new)**2/(2*sig_values_new**2))
 	gauss_0_log_tot = np.sum(gauss_0_log)
 
-	z_sq = -2*p_0_log_tot-2*gauss_0_log_tot+2*p_1_log_tot+2*gauss_1_log_tot
+	q_a = -2*p_0_log_tot-2*gauss_0_log_tot+2*p_1_log_tot+2*gauss_1_log_tot
 
-	if z_sq<0 or z_sq!=z_sq: #error in computation, happens when under neutrino floor
-		z_sq = 0
+	if q_a<0 or q_a!=q_a: #error in computation, happens when under neutrino floor
+		q_a = 0
 
-	z= np.sqrt(z_sq)
+	
+	z_0 = np.sqrt(q_a) 
 
 	
 
@@ -270,7 +282,7 @@ def likelihood(tab_dm,tab_neu_0,tab_neu_mc,exp,params_0,neu_fluxes_mc,details=0)
 		plt.show()
 		"""
 
-	return z
+	return z_0
 
 
 def like_0(tab_dm,tab_neu_0,tab_neu_mc,exp,neu_fluxes_mc):
@@ -306,7 +318,7 @@ def optimize_this(flux_fit,tab_dm,tab_neu_0,neu_arr,err_rej,exp):
 
 
 	fluxes = flux_fit*order_fit #multilply value of fluxe (between 0 and 1) by order of magnitude (did this for stability of the minimisation algorithm)
-	tab_mc = neu_arr[0,:]*fluxes[0] + neu_arr[1,:]*fluxes[1] + neu_arr[2,:]*fluxes[2] + neu_arr[3,:]*fluxes[3] + neu_arr[4,:]*fluxes[4]/er_rej +neu_arr[5,:]*fluxes[5]/er_rej
+	tab_mc = neu_arr[0,:]*fluxes[0] + neu_arr[1,:]*fluxes[1] + neu_arr[2,:]*fluxes[2] + neu_arr[3,:]*fluxes[3] + neu_arr[4,:]*fluxes[4]/err_rej +neu_arr[5,:]*fluxes[5]/err_rej
 
 	like = -like_0(tab_dm,tab_neu_0,tab_mc,exp,fluxes) #compute likelihood
 
@@ -314,20 +326,22 @@ def optimize_this(flux_fit,tab_dm,tab_neu_0,neu_arr,err_rej,exp):
 
 
 
-def one_mc_run(m,sig,emin,emax,nbin,neu_arr,AA,ZZ,er_rej,acc,exp,speed_dist,dist,dm_events,fac_dm=0.001,fac_nr=1,fac_er=1):
+def one_mc_run(m,sig,emin,emax,nbin,neu_arr,AA,ZZ,er_rej,acc,exp,speed_dist,dist,dm_events,mc,fac_dm=0.001,fac_nr=1,fac_er=1):
 	#run this function for every iteration of the Monte-Carlo
 
 	#randomly pick DM and neu parameters from normal dist.
 	#fac factor to include or not DM parameters as nuisance parameters in MC
-	dens = np.random.normal(loc=dens_dm,scale=err_dens)
+	#mc 1 to have monte carlo, 0 to fit on central values
+
+	dens = np.random.normal(loc=dens_dm,scale=mc*err_dens)
 
 	#6 neutrino sources that will be considered (pp and be7 for neutrino-electron recoils only, other for NR only)
-	f_pp = np.random.normal(loc=pp_flux,scale=fac_er*0.01*pp_flux)
-	f_hep = np.random.normal(loc=hep_flux,scale=0.16*hep_flux)
-	f_8b = np.random.normal(loc=b8_flux,scale=0.16*b8_flux)
-	f_be7 = np.random.normal(loc=be7_flux,scale=fac_er*0.105*be7_flux)
-	f_atm = np.random.normal(loc=atm_flux,scale=0.2*atm_flux)
-	f_dsnb = np.random.normal(loc=dsnb_flux,scale=0.5*dsnb_flux)
+	f_pp = np.random.normal(loc=pp_flux,scale=mc*fac_er*0.01*pp_flux)
+	f_hep = np.random.normal(loc=hep_flux,scale=mc*0.16*hep_flux)
+	f_8b = np.random.normal(loc=b8_flux,scale=mc*0.16*b8_flux)
+	f_be7 = np.random.normal(loc=be7_flux,scale=mc*fac_er*0.105*be7_flux)
+	f_atm = np.random.normal(loc=atm_flux,scale=mc*0.2*atm_flux)
+	f_dsnb = np.random.normal(loc=dsnb_flux,scale=mc*0.25*dsnb_flux)
 
 	fluxes_neu = np.array([f_hep,f_8b,f_atm,f_dsnb,f_pp,f_be7]) #neutrino fluxes
 	fluxes_neu_fit = np.array([f_hep,f_8b,f_atm,f_dsnb,f_pp,f_be7]) #fluxes that are fitted (remove CNO and pep because negligeable)
@@ -350,17 +364,17 @@ def one_mc_run(m,sig,emin,emax,nbin,neu_arr,AA,ZZ,er_rej,acc,exp,speed_dist,dist
 	#compute z value for this MC iteration
 	z = likelihood(tab_dm,tab_neu_tot,tab_mc,exp,params_0,flux_optim)
 
-	return z
+	return z, np.sum(dm_events) * exp * dens_dm * sig
 
 
-def n_mc_run(n_run,m,sig,emin,emax,nbin,neu_arr,AA,ZZ,er_rej,acc,exp,speed_dist,dist,dm_events_tab):
+def n_mc_run(n_run,m,sig,emin,emax,nbin,neu_arr,AA,ZZ,er_rej,acc,exp,speed_dist,dist,dm_events_tab,mc):
 	#function to perform Monte Carlo over n_run pseudo-experiments
 	#m DM mass, sig cross-section
 	# emin and emax limits of ROI zone, nbins number of energy bins
 	# neu_arr array containing event dist. for all neutrinos NR and ER
 	# err_rej ER rejection efficiency, exp exposure in kg s
 	# acc function for acceptance as a function of nuclear recoil energy (keV)
-	#dm_events_tab 2D arrat containging n_run DM distributions for various DM densities
+	#dm_events_tab 2D array containging n_run DM distributions for various DM densities
 
 
 	z_tab = np.zeros(n_run) #array to contain z value of discovery on each pseudo-experiment
@@ -368,13 +382,20 @@ def n_mc_run(n_run,m,sig,emin,emax,nbin,neu_arr,AA,ZZ,er_rej,acc,exp,speed_dist,
 	p=0
 	l=0
 	y=0
+
+	crit = 3
+
+	if mc == 0: 
+		crit = 3 - norm.ppf(1-0.9)
+
+
 	while k<n_run: #loop over n_run pseudo-experiments
 		dm_events = dm_events_tab * sig
-		z = one_mc_run(m,sig,emin,emax,nbin,neu_arr,AA,ZZ,er_rej,acc,exp,speed_dist,dist,dm_events) #run the MC
+		z = one_mc_run(m,sig,emin,emax,nbin,neu_arr,AA,ZZ,er_rej,acc,exp,speed_dist,dist,dm_events,mc) #run the MC
 		#print('MC run #{}, z={}'.format(k,z))
 		if not isNaN(z): #if minimisation converged properly
 			z_tab[k] = z
-			if z_tab[k]<3:
+			if z_tab[k]<crit:
 				l+=1
 			k+=1
 			p=0
@@ -395,7 +416,7 @@ def n_mc_run(n_run,m,sig,emin,emax,nbin,neu_arr,AA,ZZ,er_rej,acc,exp,speed_dist,
 	#print('z values for this iteration:{}'.format(z_tab))
 
 	if p<=3 and l<n_run/10 and y==0:
-		score = np.sum(z_tab>3)/n_run
+		score = np.sum(z_tab>crit)/n_run
 
 		if score>0.9: # if more than 90% of pseudo-experiments allow discovery of DM with a significance of at least 3 sigmas
 			result = True
@@ -415,37 +436,36 @@ def n_mc_run(n_run,m,sig,emin,emax,nbin,neu_arr,AA,ZZ,er_rej,acc,exp,speed_dist,
 
 	z_av = np.mean(z_tab)
 	#print( 'average z:{}, above floor? {}'.format(z_av,result))
-	return result , z_av
+	return result , z_av, np.sum(dm_events) * exp * dens_dm
 
 
 def e_theo(m,AA):
+	#theoretical maximum energy for recoil of given DM mass
 	mn = AA*m_p
 	red = m*mn/(m+mn)
 	e = 2*red**2*(v_0+v_esc+2*err_v0+2*err_vesc)**2/mn
 	return e
 
-def roi_def(m,AA,emin,emax,nbin):
-	#function to define energy bins according to detector material, min and max energy and maximal number  of  wanted  binsn (nbin)
-	e_max_theo = e_theo(m,AA)
 
-	if e_max_theo < emax:
-		#cut ROI if maximum energy possible for dm with this mass is below maximal energy
-		emax = e_max_theo
-
-	if (emax-emin)/nbin < 0.1:
-		#smaller  number of energy bins if size of bins < 0.1 keV
-		nbin = int((emax-emin)//0.1)
+def roi_def(emin,emax,resol):
+	#function to define number of energy bins according min and max energy and energy resolution, assuming gaussian probablity for reconstructed energy
+	return math.floor(1/resol * np.log(emax/emin))
 
 
-def dicho_search_sig(search_min,search_max,niter,n_run,m,emin,emax,nbin,neu_arr,AA,ZZ,er_rej,acc,const,speed_dist,dist):
+
+def dicho_search_sig(search_min,search_max,niter,n_run,m,emin,emax,resol,neu_arr,AA,ZZ,er_rej,acc,const,speed_dist,dist,mc=1,Quench_true=0):
 	# dichotomic search to find minimal cross section where at least 90% of pseudo-experiments allow discovery of DM with significance of 3 sigmas
 	# for a fixed exposure const
+	# To use David's method using the results from Cawan and al., choose n_run = 1 , mc = 0
 
 	e_max_theo = e_theo(m,AA)
 	#e_max_theo = emax
 
+	nbin = roi_def(emin,emax,resol)
+
 	if e_max_theo<emin:
 		search_mid = 0 #mass too small to be detected given detector threshold
+		n_dm = 0
 
 	else:
 
@@ -461,7 +481,7 @@ def dicho_search_sig(search_min,search_max,niter,n_run,m,emin,emax,nbin,neu_arr,
 			dm_params = np.array([v_esc,v_0,0,0])
 			dm_events_tab = dm_bins(emin,emax,nbin,m,acc,AA,ZZ,dm_params,speed_dist,dist) #DM events in every bin / by dm flux
 
-		neu_arr_new = neutrino_bin(emin,emax,nbin,neu_arr) #array containing neutrino events per bin for each neutrino source, 
+		neu_arr_new = neutrino_bin(emin,emax,nbin,neu_arr,Quench_true) #array containing neutrino events per bin for each neutrino source, 
 
 
 		sig_min = 1*10**(search_min)
@@ -481,9 +501,9 @@ def dicho_search_sig(search_min,search_max,niter,n_run,m,emin,emax,nbin,neu_arr,
 
 			#print('iteration in bissection search:{}, cross-section{}'.format(n,search_mid+4))
 
-			sc , av_tab[n] = n_mc_run(n_run,m,1*10**(search_mid),emin,emax,nbin,neu_arr_new,AA,ZZ,er_rej,acc,const,speed_dist,dist,dm_events_tab)
+			sc , av_tab[n],n_dm = n_mc_run(n_run,m,1*10**(search_mid),emin,emax,nbin,neu_arr_new,AA,ZZ,er_rej,acc,const,speed_dist,dist,dm_events_tab,mc)
 			sig_tab[n] = search_mid
-			#print(sc)
+			
 
 			true_count+=int(sc==True)
 
@@ -499,16 +519,39 @@ def dicho_search_sig(search_min,search_max,niter,n_run,m,emin,emax,nbin,neu_arr,
 			search_mid = 0
 
 		#print(av_tab)
+		print('total DM events: {}'.format(n_dm*10**(search_mid)*1e4))
 
-	return search_mid
+	return search_mid, n_dm
 
 
+def stats_run(m,sig,emin,emax,resol,neu_arr,AA,ZZ,err_rej,acc,exp,speed_dist,dist,Quench_true=0):
+	nbin = roi_def(emin,emax,resol)
+	nbin = 20
+
+	dm_params = np.array([v_esc,v_0,0,0])
+	dm_events_tab = dm_bins(emin,emax,nbin,m,acc,AA,ZZ,dm_params,speed_dist,dist)
+	neu_arr_new = neutrino_bin(emin,emax,nbin,neu_arr,Quench_true)
+
+
+	z , n_dm_run = one_mc_run(m,sig,emin,emax,nbin,neu_arr_new,AA,ZZ,err_rej,acc,exp,speed_dist,dist,dm_events_tab*sig, mc = 0)
+
+
+	return z, n_dm_run
+
+
+
+
+
+
+
+
+"""
 def dicho_search_exp(exp_min,exp_max,niter,n_run,m,emin,emax,nbin,neu_arr,AA,ZZ,er_rej,acc,const,speed_dist,dist):
 	# dichotomic search to find minimal exposure where at least 90% of pseudo-experiments allow discovery of DM with significance of 3 sigmas
 	# for a fixed cross-section const
+	#To use David's method using the results from Cawan and al., choose n_run = 1 
 
 	n = 0
-
 
 	av_tab = np.zeros(niter)
 	exp_tab = np.zeros(niter)
@@ -548,34 +591,28 @@ def dicho_search_exp(exp_min,exp_max,niter,n_run,m,emin,emax,nbin,neu_arr,AA,ZZ,
 def empty(e):
 	return 1
 
-
-#==========================TEST=================================================
 """
-m_tab = np.logspace(0.5,4,40)
+"""
+m_tab = np.array([100,100])*1e6
+c_tab = np.array([10e-45,10e-45])*1e-4
+AA = [A_xenon_s,A_argon_s]
+ZZ = [Z_xenon,Z_argon]
+typo = ['Xe','Ar']
+e_tab = np.linspace(0,80,1000)
 
-search_min = -55
-search_max = -47
-niter = 12
-n_run = 1000
-emin = 4.9
-emax = 90
-nbin = 50
-neu_arr = np.load('dist_neutrino_xenon_new.npy')
-AA = A_xenon_s
-ZZ = Z_xenon
-er_rej = 10**2
-acc = acc_100 
-speed_dist = 'reg'
-dist = empty
-exp = 1e4
+density = 0.3e12
+vesc = 220e3/cc
+v0 = 544e3/cc
 
-n_try = 1
-print('%12 iteration in bi, 1000 mc runs, Xe with 100 rej and 1000TY')
 
-for m in m_tab:
-	for n in range(n_try):
-		cs = dicho_search_sig(search_min,search_max,niter,n_run,m*1e6,emin,emax,nbin,neu_arr,AA,ZZ,er_rej,acc,exp*24*3600*365*1000,speed_dist,dist)
-		cross_section = 10**(cs+4)
-		print('###m={} GeV, cs={} cm2, exposure={} Ty'.format(m,cross_section,exp))
+for i in range(2):
+	dist = int_new(e_tab,m_tab[i],AA[i],ZZ[i],acc_100,iso_1,vesc,v0,1,1,'none',0,0)*c_tab[i]*1*24*3600*density
+	plt.plot(e_tab,dist,label='{} GeV, {:e} cm^2, {}'.format(m_tab[i]/1e6,c_tab[i]/1e-4,typo[i]))
 
+plt.xlabel('keV')
+plt.ylabel('dR/dE [events/KeV/year]')
+plt.yscale('log')
+plt.legend(loc='best')
+#plt.xscale('log')
+plt.show()
 """

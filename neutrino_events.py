@@ -275,7 +275,7 @@ def eval_e(e,AA,iso,ZZ,fluxe,fluxo,approx,solar=False,spectral_line='no',emax=1e
 	#evaluate event rate at specific energy point 
 	#AA atomic mass (or array of atomic masses of isotopes), iso fractions of each isotopes, ZZ electron number, fluxe elctron neutrino flux, fluxo other neutrinos
 	# If solar neutrinos, enter the complete flux for fluxe and fluxo and solar=True so the proper fractions of electron neutrinos and other neutrinos will be considered with respect to electron neutrino survival rate
-	# New additon: approx = method to approximate electrons-neutrino scatt used ('SA' for step appro - Argon, or 'data' for exp. results from paper - Xenon)
+	# New additon: approx = method to approximate electrons-neutrino scatt used ('SA' for step approx - Argon, or 'data' for exp. results from paper - Xenon)
 	R_n_o=0
 	R_n_e=0
 
